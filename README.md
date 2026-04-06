@@ -8,12 +8,7 @@ users. It reads your local transcripts, estimates how much of your 5-hour
 session and weekly Max plan quota is still available, and surfaces it right
 in your statusline. No more `/usage` popup hunting.
 
-```
-my-project  |  Opus 4.6 (1M context)  |  ctx left: [████████░░] 82%
-⏱ sess left: 89% (0h 47m left) · week left: 62% (reset Fri 18:07) · estimate
-                                ↑
-                                └── added by luigis-meter
-```
+![luigis-meter in action](docs/screenshot.svg)
 
 ## Why
 
@@ -32,6 +27,7 @@ luigis-meter puts the gauge where you already look: your statusline.
 - 🚀 **Fast** — 30s cache, <10ms on warm reads
 - 📦 **Zero runtime deps** — bash, jq, awk, find, date. Already on macOS/Linux.
 - 🔧 **Calibratable** — override defaults via environment variables
+- 🏷️ **Brand-visible** — `lm` prefix identifies the tool at a glance
 
 ## Install
 
@@ -54,8 +50,7 @@ curl -o ~/.claude/scripts/luigis-meter.sh \
 chmod +x ~/.claude/scripts/luigis-meter.sh
 ```
 
-Then add the following to your `~/.claude/statusline.sh`, just before the
-final `echo`:
+Then add to your `~/.claude/statusline.sh`, just before the final `echo`:
 
 ```bash
 METER_LINE=$(bash ~/.claude/scripts/luigis-meter.sh 2>/dev/null)
@@ -68,48 +63,81 @@ And after the final `echo`:
 ```
 
 If you don't have a `statusline.sh` yet, see `examples/statusline.sh.example`
-in this repo for a minimal starting point, or look at Claude Code's
-[official statusline docs](https://docs.anthropic.com/en/docs/claude-code/statusline).
+for a minimal starting point.
 
 ## Output format
 
 ```
-⏱ sess left: 89% (0h 47m left) · week left: 62% (reset Fri 18:07) · estimate
+lm ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 14:00) · estimate
 ```
 
-| Part                | Meaning                                                    |
-| ------------------- | ---------------------------------------------------------- |
-| `sess left: N%`     | percent of the 5-hour session block remaining              |
-| `(Nh Nm left)`      | time until the current 5-hour block resets                 |
-| `week left: N%`     | percent of the weekly quota remaining                      |
-| `(reset Fri HH:MM)` | next weekly reset                                          |
-| `estimate`          | reminder that these are local estimates, not authoritative |
+| Part                | Meaning                                       |
+| ------------------- | --------------------------------------------- |
+| `lm`                | brand prefix — this is luigis-meter           |
+| `⏱`                | visual marker for the meter line              |
+| `sess left: N%`     | percent of the 5-hour session block remaining |
+| `(Nh Nm left)`      | time until the current 5-hour block resets    |
+| `week left: N%`     | percent of the weekly quota remaining         |
+| `(reset Fri HH:MM)` | next weekly reset                             |
+| `estimate`          | reminder that these are local estimates       |
 
 Colors follow "remaining" semantics: green >50%, yellow 20-50%, red <20%.
 
-## Calibration
+## Defaults (Max 20x)
 
-The default limits are tuned for Max 20x but **they are estimates**. To
-align them with Claude Code's `/usage` popup:
-
-1. Open Claude Code and run `/usage`. Note the "used" percentages —
-   for example: `session 14% used`, `weekly 54% used`.
-2. At the same moment, run `luigis-meter.sh` in another terminal.
-   Note its "remaining" percentages — for example: `sess left 86%` (=14% used),
-   `week left 46%` (=54% used).
-3. If they match within ~5%, you're fine.
-4. If they diverge, tune in `~/.zshrc`:
+These defaults were calibrated from real Max 20x usage and match
+Claude Code's `/usage` popup within ~2% on the tester's setup:
 
 ```bash
-export CLAUDE_MAX_5H_TOKENS=500000       # default: 500K
-export CLAUDE_MAX_WEEKLY_TOKENS=5000000  # default: 5M
+CLAUDE_MAX_5H_TOKENS=192000       # ~192K tokens per 5h block
+CLAUDE_MAX_WEEKLY_TOKENS=3250000  # ~3.25M tokens per week
 ```
 
-Rule of thumb for tuning:
-`NEW_LIMIT = OLD_LIMIT × (script_used_pct / real_used_pct)`
+If the numbers drift for you, see [CALIBRATION.md](docs/CALIBRATION.md)
+for the retuning procedure, and consider sharing your tuned values via
+the [calibration issue template](https://github.com/Luigigreco/luigis-meter/issues/new?template=calibration.yml).
 
-If your script says 10% used but the popup says 14% used, multiply the
-limit by 10/14 ≈ 0.71 to shrink it until they match.
+## FAQ
+
+**Q: Why does my `sess left` show high % but `(0h 0m left)` or `(resetting...)`?**
+
+A: Not a bug. Claude Code's 5-hour session block starts from your **first
+message** in the current window and closes 5 hours later regardless of how
+much you used. If you sent one message 4h59m ago and then nothing, you'll
+see high "remaining" but imminent reset. This matches the `/usage` popup
+exactly.
+
+**Q: Why are the defaults tuned for Max 20x specifically?**
+
+A: That's the tier the original author uses. Max 5x and Pro users should
+expect the defaults to drift significantly — please retune via
+[CALIBRATION.md](docs/CALIBRATION.md) and consider opening a calibration
+issue so the community can converge on per-tier defaults.
+
+**Q: Is the weekly reset really on Fridays?**
+
+A: Anthropic uses a rolling 7-day window under the hood, but the `/usage`
+popup displays "Resets Fri HH:MM" as a human-friendly approximation.
+luigis-meter mirrors that format for familiarity. The number of tokens
+used in the last 7 days is what actually matters, not the exact day.
+
+**Q: Why don't you count `cache_read_input_tokens`?**
+
+A: Cache tokens are heavily discounted in real Anthropic billing (Claude
+Code uses prompt caching aggressively). Including them would inflate
+percentages 10-20x and make the meter wildly wrong. Only `input_tokens +
+output_tokens` are counted.
+
+**Q: Can this push me over the limit faster by running frequently?**
+
+A: No. The script only **reads** local JSONL files that already exist. It
+makes zero API calls to Anthropic. Running it every second costs nothing.
+
+**Q: What if Anthropic changes the Max plan limits?**
+
+A: The hardcoded defaults will go stale. Either wait for a new release
+that updates them, or retune via env vars yourself. Calibration issues
+are the mechanism for catching drift quickly.
 
 ## How it works
 
@@ -132,38 +160,51 @@ calibration.
 - `cache_creation_input_tokens` (one-off, distorts short windows)
 - Tool call overhead and server tool tokens (not exposed in transcripts)
 
-Including cache tokens inflates percentages 10-20x. If you really want
-raw totals, fork and flip the jq filter — it's one line.
-
 ## Limitations
 
 - **Not authoritative**: Anthropic's `/usage` popup uses server-side data.
   This tool uses local transcripts. They can diverge.
 - **Weekly reset is approximated**: Anthropic uses a rolling 7-day window.
-  luigis-meter displays "next Friday" for familiarity with the popup format.
 - **Limits drift over time**: If Anthropic changes Max plan quotas, the
   hardcoded defaults will go stale. Recalibrate periodically.
-- **Single-tier**: Sonnet and Opus tokens are summed together. If Anthropic
-  ever publishes split limits, this tool will need an update.
+- **Single-tier counting**: Sonnet and Opus tokens are summed together.
+
+## Community
+
+luigis-meter is part of the Claude Code power-user ecosystem. Worth
+following for updates, tips, and related tools:
+
+- [@luigigreco on X](https://x.com/luigigreco) — creator, tool updates
+- [@ClaudeCodeLog on X](https://x.com/ClaudeCodeLog) — Claude Code changelog bot
+- [@tom_doerr on X](https://x.com/tom_doerr) — community tools and experiments
+- [@bcherny on X](https://x.com/bcherny) — Claude Code creator (Anthropic)
+
+If you build something on top of luigis-meter or fork it into a variant,
+tag `@luigigreco` — I'd love to see it.
 
 ## Roadmap
 
+- [x] Initial release
+- [x] Brand visible in output (`lm` prefix)
+- [x] Calibrated defaults from real Max 20x data
+- [x] FAQ for confusing edge cases
 - [ ] Homebrew tap (`brew install luigigreco/meter/luigis-meter`)
-- [ ] Community-contributed calibration dataset
+- [ ] Community-contributed calibration dataset for Max 5x / Pro tiers
 - [ ] Alert mode (`notify-send` when `sess left < 10%`)
 - [ ] Split Sonnet / Opus counters (if Anthropic publishes split limits)
 
 ## Contributing
 
-Calibration data is gold. If your numbers diverge from `/usage`, open an
-issue with:
+Calibration data is gold. If your numbers diverge from `/usage`, open a
+[calibration issue](https://github.com/Luigigreco/luigis-meter/issues/new?template=calibration.yml)
+with:
 
 - Your plan (Max 5x / Max 20x / Pro)
 - Real "used" percentages from `/usage`
 - luigis-meter percentages at the same moment
-- The env var values you tuned (if any)
+- Your tuned env var values (if any)
 
-This helps the community converge on realistic defaults.
+The more data points we collect, the better the defaults get for everyone.
 
 ## License
 
