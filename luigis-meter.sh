@@ -185,7 +185,7 @@ LINK_END="\033]8;;\a"
 # Brand is clickable → opens the repo (primary discovery hook)
 BRAND="${REPO_LINK_START}${BOLD}${UNDERLINE}${MAGENTA}luigis-meter${RESET}${LINK_END}"
 # Credit is clickable → opens the X profile (personal brand hook)
-CREDIT="· follow for updates: x.com/luigigreco"
+CREDIT="· ${GREEN}follow for updates: x.com/luigigreco${RESET}"
 
 OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} (${RESET_5H_STR}) · week left: ${CWK}${PCT_WEEK}%${RESET} (reset ${RESET_WEEK_STR}) · estimate ${CREDIT}"
 
