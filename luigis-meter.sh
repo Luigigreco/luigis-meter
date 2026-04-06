@@ -161,6 +161,7 @@ YELLOW="\033[33m"
 RED="\033[31m"
 CYAN="\033[36m"
 MAGENTA="\033[35m"
+UNDERLINE="\033[4m"
 
 color_for_pct() {
     local p=$1
@@ -181,9 +182,9 @@ X_LINK_START="\033]8;;https://x.com/luigigreco\a"
 LINK_END="\033]8;;\a"
 
 # Brand is clickable → opens the repo (primary discovery hook)
-BRAND="${REPO_LINK_START}${BOLD}${MAGENTA}luigis-meter${RESET}${LINK_END}"
+BRAND="${REPO_LINK_START}${BOLD}${UNDERLINE}${MAGENTA}luigis-meter${RESET}${LINK_END}"
 # Credit is clickable → opens the X profile (personal brand hook)
-CREDIT="${DIM}· ${X_LINK_START}@luigigreco${LINK_END}${RESET}"
+CREDIT="${DIM}· ${X_LINK_START}${UNDERLINE}@luigigreco${RESET}${LINK_END}${RESET}"
 
 OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} ${DIM}(${RESET_5H_STR})${RESET} ${DIM}·${RESET} week left: ${CWK}${PCT_WEEK}%${RESET} ${DIM}(reset ${RESET_WEEK_STR}) · estimate${RESET} ${CREDIT}"
 
