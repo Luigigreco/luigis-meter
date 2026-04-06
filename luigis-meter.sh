@@ -161,6 +161,7 @@ YELLOW="\033[33m"
 RED="\033[31m"
 CYAN="\033[36m"
 MAGENTA="\033[35m"
+WHITE="\033[37m"
 UNDERLINE="\033[4m"
 
 color_for_pct() {
@@ -190,7 +191,7 @@ OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} ${DIM}($
 
 # Tagline: second row under the metrics, italic dim.
 # Passive marketing on every refresh without cluttering the data line.
-TAGLINE="${DIM}${ITALIC}Never let the /usage popup surprise you.${RESET}"
+TAGLINE="${ITALIC}${WHITE}Never let the /usage popup surprise you.${RESET}"
 
 # --- Write cache and print ---
 {
