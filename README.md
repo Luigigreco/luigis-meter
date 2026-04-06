@@ -168,7 +168,7 @@ This helps the community converge on realistic defaults.
 ## License
 
 MIT. Use it, fork it, rebrand it. If you build something cool on top, I'd
-love to hear about it: [@luigigreco](https://github.com/Luigigreco).
+love to hear about it: [@luigigreco on X](https://x.com/luigigreco).
 
 ## Credits
 
