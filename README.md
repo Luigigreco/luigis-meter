@@ -1,6 +1,6 @@
 # luigis-meter
 
-[\![powered by luigi's meter](https://img.shields.io/badge/powered%20by-luigi%27s%20meter-ff79c6?style=flat-square)](https://github.com/Luigigreco/luigis-meter)
+[\![powered by luigis-meter](https://img.shields.io/badge/powered%20by-luigis--meter-ff79c6?style=flat-square)](https://github.com/Luigigreco/luigis-meter)
 
 > Know exactly how much Claude Code runway you have — 5h session and weekly —
 > before the `/usage` popup would tell you. Statusline-native, calibratable, MIT.
@@ -29,7 +29,7 @@ luigis-meter puts the gauge where you already look: your statusline.
 - 🚀 **Fast** — 30s cache, <10ms on warm reads
 - 📦 **Zero runtime deps** — bash, jq, awk, find, date. Already on macOS/Linux.
 - 🔧 **Calibratable** — override defaults via environment variables
-- 🏷️ **Brand-visible** — `luigi's meter` prefix identifies the tool at a glance
+- 🏷️ **Brand-visible** — `luigis-meter` prefix identifies the tool at a glance
 
 ## Install
 
@@ -70,7 +70,7 @@ for a minimal starting point.
 ## Output format
 
 ```
-luigi's meter ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 14:00) · estimate
+luigis-meter ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 14:00) · estimate
 ```
 
 | Part                | Meaning                                       |
@@ -173,15 +173,15 @@ calibration.
 
 ## Show it off
 
-Using luigi's meter? Add this badge to your README and give the tool a home on
+Using luigis-meter? Add this badge to your README and give the tool a home on
 your projects:
 
-[\![powered by luigi's meter](https://img.shields.io/badge/powered%20by-luigi%27s%20meter-ff79c6?style=flat-square)](https://github.com/Luigigreco/luigis-meter)
+[\![powered by luigis-meter](https://img.shields.io/badge/powered%20by-luigis--meter-ff79c6?style=flat-square)](https://github.com/Luigigreco/luigis-meter)
 
 Markdown to copy-paste:
 
 ```markdown
-[\![powered by luigi's meter](https://img.shields.io/badge/powered%20by-luigi%27s%20meter-ff79c6?style=flat-square)](https://github.com/Luigigreco/luigis-meter)
+[\![powered by luigis-meter](https://img.shields.io/badge/powered%20by-luigis--meter-ff79c6?style=flat-square)](https://github.com/Luigigreco/luigis-meter)
 ```
 
 Every badge is a backlink. Every backlink makes the next user discover the tool.
@@ -203,7 +203,7 @@ tag `@luigigreco` — I'd love to see it.
 ## Roadmap
 
 - [x] Initial release
-- [x] Brand visible in output (`luigi's meter` prefix)
+- [x] Brand visible in output (`luigis-meter` prefix)
 - [x] Calibrated defaults from real Max 20x data
 - [x] FAQ for confusing edge cases
 - [ ] Homebrew tap (`brew install luigigreco/meter/luigis-meter`)
