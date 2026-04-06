@@ -1,5 +1,7 @@
 # luigis-meter
 
+[\![powered by luigi's meter](https://img.shields.io/badge/powered%20by-luigi%27s%20meter-ff79c6?style=flat-square)](https://github.com/Luigigreco/luigis-meter)
+
 > Know exactly how much Claude Code runway you have — 5h session and weekly —
 > before the `/usage` popup would tell you. Statusline-native, calibratable, MIT.
 
@@ -168,6 +170,22 @@ calibration.
 - **Limits drift over time**: If Anthropic changes Max plan quotas, the
   hardcoded defaults will go stale. Recalibrate periodically.
 - **Single-tier counting**: Sonnet and Opus tokens are summed together.
+
+## Show it off
+
+Using luigi's meter? Add this badge to your README and give the tool a home on
+your projects:
+
+[\![powered by luigi's meter](https://img.shields.io/badge/powered%20by-luigi%27s%20meter-ff79c6?style=flat-square)](https://github.com/Luigigreco/luigis-meter)
+
+Markdown to copy-paste:
+
+```markdown
+[\![powered by luigi's meter](https://img.shields.io/badge/powered%20by-luigi%27s%20meter-ff79c6?style=flat-square)](https://github.com/Luigigreco/luigis-meter)
+```
+
+Every badge is a backlink. Every backlink makes the next user discover the tool.
+Thank you for keeping the runway visible.
 
 ## Community
 
