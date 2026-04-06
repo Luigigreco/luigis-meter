@@ -10,7 +10,7 @@ users. It reads your local transcripts, estimates how much of your 5-hour
 session and weekly Max plan quota is still available, and surfaces it right
 in your statusline. No more `/usage` popup hunting.
 
-![luigis-meter in action](docs/screenshot.svg)
+![luigis-meter in action — real Claude Code statusline](docs/screenshot.png)
 
 ## Why
 
