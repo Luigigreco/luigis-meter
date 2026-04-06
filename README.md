@@ -27,7 +27,7 @@ luigis-meter puts the gauge where you already look: your statusline.
 - 🚀 **Fast** — 30s cache, <10ms on warm reads
 - 📦 **Zero runtime deps** — bash, jq, awk, find, date. Already on macOS/Linux.
 - 🔧 **Calibratable** — override defaults via environment variables
-- 🏷️ **Brand-visible** — `luigi's` prefix identifies the tool at a glance
+- 🏷️ **Brand-visible** — `luigi's meter` prefix identifies the tool at a glance
 
 ## Install
 
@@ -68,7 +68,7 @@ for a minimal starting point.
 ## Output format
 
 ```
-luigi's ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 14:00) · estimate
+luigi's meter ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 14:00) · estimate
 ```
 
 | Part                | Meaning                                       |
@@ -185,7 +185,7 @@ tag `@luigigreco` — I'd love to see it.
 ## Roadmap
 
 - [x] Initial release
-- [x] Brand visible in output (`luigi's` prefix)
+- [x] Brand visible in output (`luigi's meter` prefix)
 - [x] Calibrated defaults from real Max 20x data
 - [x] FAQ for confusing edge cases
 - [ ] Homebrew tap (`brew install luigigreco/meter/luigis-meter`)
