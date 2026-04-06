@@ -175,7 +175,12 @@ CWK=$(color_for_pct "$PCT_WEEK")
 # --- Build output ---
 # Brand prefix: "lm" = luigis-meter (short, low footprint, still visible)
 BRAND="${BOLD}${MAGENTA}luigi's meter${RESET}"
-OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} ${DIM}(${RESET_5H_STR})${RESET} ${DIM}·${RESET} week left: ${CWK}${PCT_WEEK}%${RESET} ${DIM}(reset ${RESET_WEEK_STR}) · estimate${RESET}"
+# OSC 8 hyperlink: clickable in iTerm2, Ghostty, Kitty, VSCode terminal, WezTerm.
+# Falls back to plain text in terminals without OSC 8 (e.g. Apple Terminal.app).
+LINK_START="\033]8;;https://x.com/luigigreco\a"
+LINK_END="\033]8;;\a"
+CREDIT="${DIM}· ${LINK_START}@luigigreco${LINK_END}${RESET}"
+OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} ${DIM}(${RESET_5H_STR})${RESET} ${DIM}·${RESET} week left: ${CWK}${PCT_WEEK}%${RESET} ${DIM}(reset ${RESET_WEEK_STR}) · estimate${RESET} ${CREDIT}"
 
 # --- Write cache and print ---
 echo -e "$OUTPUT" > "$CACHE_FILE"
