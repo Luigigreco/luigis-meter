@@ -10,12 +10,15 @@
 # local estimate so you can see "remaining" at a glance in your statusline.
 #
 # Output example:
-#   "⏱ sess left: 89% (0h 47m left) · week left: 62% (reset Fri 18:07) · estimate"
+#   "lm ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 18:07) · estimate"
 #
 # Environment variables (override defaults in ~/.zshrc if the numbers drift
 # from Claude Code's /usage popup):
 #   CLAUDE_MAX_5H_TOKENS     default 192000    (tokens per 5h block, Max 20x)
 #   CLAUDE_MAX_WEEKLY_TOKENS default 3250000   (tokens per week,    Max 20x)
+#
+# Defaults tuned from real Max 20x user data. See docs/CALIBRATION.md
+# for how to retune to your own plan and workload.
 #
 # Cache: $TMPDIR/luigis-meter.cache with 30s TTL.
 # Dependencies: bash, jq, awk, find, date (GNU or BSD — fallbacks included).
@@ -58,7 +61,6 @@ BLOCK_START=$(( NOW - 5 * 3600 ))   # 5h ago
 WEEK_START=$(( NOW - 7 * 86400 ))   # 7d ago
 
 # --- Collect JSONL files modified in the last 7 days ---
-# We only scan recent transcripts to avoid touching every historical file.
 FILES=$(find "$PROJECTS_DIR" -name "*.jsonl" -mtime -7 2>/dev/null)
 
 if [ -z "$FILES" ]; then
@@ -66,10 +68,9 @@ if [ -z "$FILES" ]; then
     SUM_WEEK=0
     FIRST_5H_TS=$NOW
 else
-    # jq streaming: for every assistant record with a usage field, emit
-    # "<epoch>\t<tokens>" where tokens = input + output.
-    # Cache tokens are NOT included — they skew percentages heavily because
-    # Anthropic discounts cache reads in real billing.
+    # jq streaming: emit "<epoch>\t<tokens>" for every assistant record
+    # with a usage field. Cache tokens are NOT counted — they distort
+    # percentages because Anthropic discounts cache reads in real billing.
     READ_DATA=$(echo "$FILES" | tr '\n' '\0' | xargs -0 cat 2>/dev/null | jq -rc '
         select(.type == "assistant" and .message.usage != null) |
         [
@@ -110,24 +111,30 @@ PCT_WEEK=$(( 100 - PCT_WEEK_USED ))
 if [ "$PCT_WEEK" -lt 0 ]; then PCT_WEEK=0; fi
 
 # --- Reset time for 5h block ---
-# The block starts at the first message after BLOCK_START. If there are
-# none, assume no active block and show 5h fully available.
+# The block starts from the FIRST message in the window and closes 5h
+# later regardless of how much was used. This matches Anthropic semantics.
 if [ "$FIRST_5H_TS" -lt "$NOW" ] && [ "$SUM_5H" -gt 0 ]; then
     RESET_5H_EPOCH=$(( FIRST_5H_TS + 5 * 3600 ))
     SECS_LEFT=$(( RESET_5H_EPOCH - NOW ))
     if [ "$SECS_LEFT" -lt 0 ]; then
         SECS_LEFT=0
     fi
-    H_LEFT=$(( SECS_LEFT / 3600 ))
-    M_LEFT=$(( (SECS_LEFT % 3600) / 60 ))
-    RESET_5H_STR="${H_LEFT}h ${M_LEFT}m left"
+    # When reset is imminent (<60s) and the block was barely used (>90% left),
+    # show "resetting..." instead of "0h 0m left" to reduce confusion.
+    if [ "$SECS_LEFT" -lt 60 ] && [ "$PCT_5H" -gt 90 ]; then
+        RESET_5H_STR="resetting..."
+    else
+        H_LEFT=$(( SECS_LEFT / 3600 ))
+        M_LEFT=$(( (SECS_LEFT % 3600) / 60 ))
+        RESET_5H_STR="${H_LEFT}h ${M_LEFT}m left"
+    fi
 else
     RESET_5H_STR="5h 0m left"
 fi
 
 # --- Reset weekly: next Friday 14:00 local ---
-# Anthropic actually uses a rolling 7-day window, but the /usage popup
-# displays "Resets Fri HH:MM" so we mirror that format.
+# Anthropic uses a rolling 7-day window under the hood, but the /usage popup
+# displays "Resets Fri HH:MM" so we mirror that format for familiarity.
 DOW=$(date +%u)  # 1=Mon .. 7=Sun
 if [ "$DOW" -lt 5 ]; then
     DAYS_TO_FRI=$(( 5 - DOW ))
@@ -145,13 +152,15 @@ RESET_WEEK_STR=$(date -v+${DAYS_TO_FRI}d "+Fri %H:%M" 2>/dev/null || \
                  date -d "+${DAYS_TO_FRI} days" "+Fri %H:%M" 2>/dev/null || \
                  echo "Fri 14:00")
 
-# --- Color mapping (input is "remaining %") ---
+# --- Colors (input is "remaining %") ---
 RESET="\033[0m"
+BOLD="\033[1m"
 DIM="\033[2m"
 GREEN="\033[32m"
 YELLOW="\033[33m"
 RED="\033[31m"
 CYAN="\033[36m"
+MAGENTA="\033[35m"
 
 color_for_pct() {
     local p=$1
@@ -164,7 +173,9 @@ C5H=$(color_for_pct "$PCT_5H")
 CWK=$(color_for_pct "$PCT_WEEK")
 
 # --- Build output ---
-OUTPUT="${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} ${DIM}(${RESET_5H_STR})${RESET} ${DIM}·${RESET} week left: ${CWK}${PCT_WEEK}%${RESET} ${DIM}(reset ${RESET_WEEK_STR}) · estimate${RESET}"
+# Brand prefix: "lm" = luigis-meter (short, low footprint, still visible)
+BRAND="${BOLD}${MAGENTA}lm${RESET}"
+OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} ${DIM}(${RESET_5H_STR})${RESET} ${DIM}·${RESET} week left: ${CWK}${PCT_WEEK}%${RESET} ${DIM}(reset ${RESET_WEEK_STR}) · estimate${RESET}"
 
 # --- Write cache and print ---
 echo -e "$OUTPUT" > "$CACHE_FILE"
