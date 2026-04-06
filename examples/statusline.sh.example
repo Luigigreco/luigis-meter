@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# Minimal statusline.sh example with luigis-meter integration.
+# Drop into ~/.claude/statusline.sh and customize.
+#
+# Claude Code passes a JSON payload to stdin. See:
+# https://docs.anthropic.com/en/docs/claude-code/statusline
+#
+
+INPUT=$(cat)
+
+# Extract fields (requires jq)
+MODEL=$(echo "$INPUT" | jq -r '.model.display_name // "Claude"')
+CTX_REMAINING=$(echo "$INPUT" | jq -r '.context_window.remaining_percentage // 100')
+COST=$(echo "$INPUT" | jq -r '.cost.total_cost_usd // 0')
+
+# Build main line
+LINE="${MODEL} | ctx left: ${CTX_REMAINING%.*}%"
+if [ "$(echo "$COST > 0" | bc 2>/dev/null)" = "1" ]; then
+    LINE="${LINE} | $(printf '$%.2f' "$COST")"
+fi
+
+# luigis-meter — Claude Code Max quota estimate
+METER_LINE=$(bash ~/.claude/scripts/luigis-meter.sh 2>/dev/null)
+
+echo -e "$LINE"
+[ -n "$METER_LINE" ] && echo -e "$METER_LINE"
