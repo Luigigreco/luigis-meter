@@ -190,7 +190,7 @@ OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} ${DIM}($
 
 # Tagline: second row under the metrics, italic dim.
 # Passive marketing on every refresh without cluttering the data line.
-TAGLINE="${DIM}${ITALIC}Know exactly how much Claude Code runway you have — 5h session and weekly — before the /usage popup would tell you. Statusline-native, calibratable, MIT.${RESET}"
+TAGLINE="${DIM}${ITALIC}Never let the /usage popup surprise you.${RESET}"
 
 # --- Write cache and print ---
 {
