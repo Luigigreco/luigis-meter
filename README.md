@@ -1,7 +1,7 @@
 # luigis-meter
 
-> The Claude Code Max quota meter, live in your statusline.
-> Know when you're burning fuel before you run out.
+> Know exactly how much Claude Code runway you have — 5h session and weekly —
+> before the `/usage` popup would tell you. Statusline-native, calibratable, MIT.
 
 **luigis-meter** is a terminal-native quota indicator for Claude Code Max
 users. It reads your local transcripts, estimates how much of your 5-hour
