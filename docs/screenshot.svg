@@ -37,7 +37,7 @@
   <text x="642" y="190" fill="#f1fa8c">main</text>
 
   <!-- Statusline row 2: luigis-meter -->
-  <text x="20" y="214" fill="#ff79c6" font-weight="bold">luigi's meter</text>
+  <text x="20" y="214" fill="#ff79c6" font-weight="bold">luigis-meter</text>
   <text x="46" y="214" fill="#8be9fd">⏱</text>
   <text x="62" y="214" fill="#e0e0e0">sess left: </text>
   <text x="150" y="214" fill="#50fa7b" font-weight="bold">85%</text>
