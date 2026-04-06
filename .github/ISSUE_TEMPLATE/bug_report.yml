@@ -1,0 +1,65 @@
+name: 🐛 Bug report
+description: Something in luigis-meter is broken or behaves unexpectedly
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: What did you see vs. what did you expect?
+      placeholder: |
+        I ran luigis-meter.sh and...
+        I expected...
+        Instead I got...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: Minimal steps to trigger the bug
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "e.g. macOS 14.5, Ubuntu 22.04"
+    validations:
+      required: true
+  - type: input
+    id: bash_version
+    attributes:
+      label: Bash version
+      description: Output of `bash --version | head -1`
+      placeholder: "GNU bash, version 5.2.15"
+    validations:
+      required: false
+  - type: input
+    id: jq_version
+    attributes:
+      label: jq version
+      description: Output of `jq --version`
+      placeholder: "jq-1.7.1"
+    validations:
+      required: false
+  - type: textarea
+    id: output
+    attributes:
+      label: Raw output
+      description: Paste the full output of `bash ~/.claude/scripts/luigis-meter.sh`
+      render: text
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error logs or console output
+      render: text
+    validations:
+      required: false
