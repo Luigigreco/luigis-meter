@@ -14,8 +14,8 @@
 #
 # Environment variables (override defaults in ~/.zshrc if the numbers drift
 # from Claude Code's /usage popup):
-#   CLAUDE_MAX_5H_TOKENS     default 192000    (tokens per 5h block, Max 20x)
-#   CLAUDE_MAX_WEEKLY_TOKENS default 3250000   (tokens per week,    Max 20x)
+#   CLAUDE_MAX_5H_TOKENS     default 295000    (tokens per 5h block, Max 20x)
+#   CLAUDE_MAX_WEEKLY_TOKENS default 2960000   (tokens per week,    Max 20x)
 #
 # Defaults tuned from real Max 20x user data. See docs/CALIBRATION.md
 # for how to retune to your own plan and workload.
@@ -30,8 +30,8 @@
 set -u
 
 # --- Config ---
-MAX_5H_TOKENS="${CLAUDE_MAX_5H_TOKENS:-192000}"
-MAX_WEEKLY_TOKENS="${CLAUDE_MAX_WEEKLY_TOKENS:-3250000}"
+MAX_5H_TOKENS="${CLAUDE_MAX_5H_TOKENS:-295000}"
+MAX_WEEKLY_TOKENS="${CLAUDE_MAX_WEEKLY_TOKENS:-2960000}"
 PROJECTS_DIR="$HOME/.claude/projects"
 CACHE_FILE="${TMPDIR:-/tmp}/luigis-meter.cache"
 CACHE_TTL=30
