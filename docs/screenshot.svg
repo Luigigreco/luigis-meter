@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 240" font-family="SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace" font-size="14">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1b1f"/>
+      <stop offset="1" stop-color="#121217"/>
+    </linearGradient>
+  </defs>
+  <rect width="860" height="240" rx="10" fill="url(#bg)"/>
+
+  <!-- Title bar -->
+  <rect width="860" height="28" rx="10" fill="#2a2a33"/>
+  <rect y="14" width="860" height="14" fill="#2a2a33"/>
+  <circle cx="18" cy="14" r="6" fill="#ff5f56"/>
+  <circle cx="38" cy="14" r="6" fill="#ffbd2e"/>
+  <circle cx="58" cy="14" r="6" fill="#27c93f"/>
+  <text x="430" y="18" fill="#888" text-anchor="middle" font-size="11">my-project — claude — 160×24</text>
+
+  <!-- Prompt line 1 -->
+  <text x="20" y="65" fill="#888">$</text>
+  <text x="38" y="65" fill="#d0d0d0">claude</text>
+
+  <!-- Assistant reply area -->
+  <text x="20" y="95" fill="#bbb">Sure — what would you like me to work on?</text>
+
+  <!-- Statusline separator -->
+  <line x1="20" y1="165" x2="840" y2="165" stroke="#2a2a33" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- Statusline row 1: repo | model | ctx | cost | branch -->
+  <text x="20" y="190" fill="#e0e0e0" font-weight="bold">my-project</text>
+  <text x="134" y="190" fill="#555">|</text>
+  <text x="150" y="190" fill="#e0e0e0">Opus 4.6 (1M context)</text>
+  <text x="324" y="190" fill="#555">|</text>
+  <text x="340" y="190" fill="#50fa7b">ctx left: [████████░░] 82%</text>
+  <text x="558" y="190" fill="#555">|</text>
+  <text x="574" y="190" fill="#888">$6.39</text>
+  <text x="626" y="190" fill="#555">|</text>
+  <text x="642" y="190" fill="#f1fa8c">main</text>
+
+  <!-- Statusline row 2: luigis-meter -->
+  <text x="20" y="214" fill="#ff79c6" font-weight="bold">lm</text>
+  <text x="46" y="214" fill="#8be9fd">⏱</text>
+  <text x="62" y="214" fill="#e0e0e0">sess left: </text>
+  <text x="150" y="214" fill="#50fa7b" font-weight="bold">85%</text>
+  <text x="192" y="214" fill="#666">(2h 13m left)</text>
+  <text x="296" y="214" fill="#555">·</text>
+  <text x="312" y="214" fill="#e0e0e0">week left: </text>
+  <text x="398" y="214" fill="#f1fa8c" font-weight="bold">39%</text>
+  <text x="440" y="214" fill="#666">(reset Fri 14:00) · estimate</text>
+</svg>
