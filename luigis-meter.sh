@@ -174,7 +174,7 @@ CWK=$(color_for_pct "$PCT_WEEK")
 
 # --- Build output ---
 # Brand prefix: "lm" = luigis-meter (short, low footprint, still visible)
-BRAND="${BOLD}${MAGENTA}luigi's${RESET}"
+BRAND="${BOLD}${MAGENTA}luigi's meter${RESET}"
 OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} ${DIM}(${RESET_5H_STR})${RESET} ${DIM}·${RESET} week left: ${CWK}${PCT_WEEK}%${RESET} ${DIM}(reset ${RESET_WEEK_STR}) · estimate${RESET}"
 
 # --- Write cache and print ---
