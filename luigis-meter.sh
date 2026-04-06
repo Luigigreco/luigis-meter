@@ -185,9 +185,9 @@ LINK_END="\033]8;;\a"
 # Brand is clickable → opens the repo (primary discovery hook)
 BRAND="${REPO_LINK_START}${BOLD}${UNDERLINE}${MAGENTA}luigis-meter${RESET}${LINK_END}"
 # Credit is clickable → opens the X profile (personal brand hook)
-CREDIT="${DIM}· ${X_LINK_START}${UNDERLINE}@luigigreco${RESET}${LINK_END}${RESET}"
+CREDIT="· ${X_LINK_START}${UNDERLINE}@luigigreco${RESET}${LINK_END}${RESET}"
 
-OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} ${DIM}(${RESET_5H_STR})${RESET} ${DIM}·${RESET} week left: ${CWK}${PCT_WEEK}%${RESET} ${DIM}(reset ${RESET_WEEK_STR}) · estimate${RESET} ${CREDIT}"
+OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} (${RESET_5H_STR}) · week left: ${CWK}${PCT_WEEK}%${RESET} (reset ${RESET_WEEK_STR}) · estimate ${CREDIT}"
 
 # Tagline: second row under the metrics, italic dim.
 # Passive marketing on every refresh without cluttering the data line.
