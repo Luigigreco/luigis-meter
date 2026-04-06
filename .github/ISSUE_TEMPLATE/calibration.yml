@@ -1,0 +1,67 @@
+name: 📏 Calibration data
+description: Share your tuned CLAUDE_MAX_* values to help improve defaults
+title: "[calibration] Max ? plan"
+labels: ["calibration"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing calibration data! Community numbers help everyone.
+        Please fill out what you know — even partial data is valuable.
+  - type: dropdown
+    id: plan
+    attributes:
+      label: Plan tier
+      options:
+        - Max 20x
+        - Max 5x
+        - Pro
+        - Team
+        - Enterprise
+        - Other (specify in notes)
+    validations:
+      required: true
+  - type: input
+    id: m5h
+    attributes:
+      label: CLAUDE_MAX_5H_TOKENS (your tuned value)
+      placeholder: "e.g. 192000"
+    validations:
+      required: true
+  - type: input
+    id: mweek
+    attributes:
+      label: CLAUDE_MAX_WEEKLY_TOKENS (your tuned value)
+      placeholder: "e.g. 3250000"
+    validations:
+      required: true
+  - type: textarea
+    id: ground_truth
+    attributes:
+      label: Ground truth from /usage popup
+      description: |
+        Paste what Claude Code's /usage popup showed at the moment you tuned.
+        Example:
+          session: 13% used, 4h 47m left
+          weekly: 60% used, Resets Fri 14:00
+      render: text
+    validations:
+      required: false
+  - type: dropdown
+    id: workload
+    attributes:
+      label: Typical workload
+      options:
+        - Light (refactoring, small edits)
+        - Mixed (daily dev work, some agentic)
+        - Heavy (long agentic sessions, many tools)
+        - Extreme (multi-hour parallel orchestration)
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes (optional)
+      description: Anything else worth knowing — OS, tmux/iTerm, model split, etc.
+    validations:
+      required: false
