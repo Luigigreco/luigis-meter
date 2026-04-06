@@ -14,7 +14,7 @@ Claude Code Max plan quota directly in the statusline.
 
 No more hunting the /usage popup mid-flow.
 
-lm ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 14:00)
+luigi's ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 14:00)
 
 https://github.com/Luigigreco/luigis-meter
 ```
@@ -66,7 +66,7 @@ The fix: a 200-line bash script that reads your local Claude Code
 transcripts (~/.claude/projects/**/*.jsonl), estimates how much of each
 quota is still available, and surfaces it live in your statusline.
 
-lm ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 14:00)
+luigi's ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 14:00)
 
 Key design decisions:
 • Zero runtime dependencies beyond jq (already installed on most systems)
@@ -107,7 +107,7 @@ It parses ~/.claude/projects/**/*.jsonl (Claude Code's local transcripts),
 sums input+output tokens from the last 5h and 7d, and compares them to
 Max 20x plan limits. Output looks like this:
 
-    lm ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 14:00)
+    luigi's ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 14:00)
 
 Green/yellow/red color coding, 30s cache, zero runtime deps beyond jq.
 Defaults are tuned from real Max 20x usage data, and they're overridable
