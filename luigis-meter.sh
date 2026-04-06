@@ -188,7 +188,14 @@ CREDIT="${DIM}· ${X_LINK_START}${UNDERLINE}@luigigreco${RESET}${LINK_END}${RESE
 
 OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} ${DIM}(${RESET_5H_STR})${RESET} ${DIM}·${RESET} week left: ${CWK}${PCT_WEEK}%${RESET} ${DIM}(reset ${RESET_WEEK_STR}) · estimate${RESET} ${CREDIT}"
 
+# Tagline: second row under the metrics, italic dim.
+# Passive marketing on every refresh without cluttering the data line.
+TAGLINE="${DIM}${ITALIC}Know exactly how much Claude Code runway you have — 5h session and weekly — before the /usage popup would tell you. Statusline-native, calibratable, MIT.${RESET}"
+
 # --- Write cache and print ---
-echo -e "$OUTPUT" > "$CACHE_FILE"
+{
+    echo -e "$OUTPUT"
+    echo -e "$TAGLINE"
+} > "$CACHE_FILE"
 cat "$CACHE_FILE"
 exit 0
