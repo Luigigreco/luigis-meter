@@ -174,12 +174,17 @@ CWK=$(color_for_pct "$PCT_WEEK")
 
 # --- Build output ---
 # Brand prefix: "lm" = luigis-meter (short, low footprint, still visible)
-BRAND="${BOLD}${MAGENTA}luigi's meter${RESET}"
-# OSC 8 hyperlink: clickable in iTerm2, Ghostty, Kitty, VSCode terminal, WezTerm.
+# OSC 8 hyperlinks: clickable in iTerm2, Ghostty, Kitty, VSCode terminal, WezTerm.
 # Falls back to plain text in terminals without OSC 8 (e.g. Apple Terminal.app).
-LINK_START="\033]8;;https://x.com/luigigreco\a"
+REPO_LINK_START="\033]8;;https://github.com/Luigigreco/luigis-meter\a"
+X_LINK_START="\033]8;;https://x.com/luigigreco\a"
 LINK_END="\033]8;;\a"
-CREDIT="${DIM}· ${LINK_START}@luigigreco${LINK_END}${RESET}"
+
+# Brand is clickable → opens the repo (primary discovery hook)
+BRAND="${REPO_LINK_START}${BOLD}${MAGENTA}luigi's meter${RESET}${LINK_END}"
+# Credit is clickable → opens the X profile (personal brand hook)
+CREDIT="${DIM}· ${X_LINK_START}@luigigreco${LINK_END}${RESET}"
+
 OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} ${DIM}(${RESET_5H_STR})${RESET} ${DIM}·${RESET} week left: ${CWK}${PCT_WEEK}%${RESET} ${DIM}(reset ${RESET_WEEK_STR}) · estimate${RESET} ${CREDIT}"
 
 # --- Write cache and print ---
