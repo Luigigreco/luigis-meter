@@ -181,7 +181,7 @@ X_LINK_START="\033]8;;https://x.com/luigigreco\a"
 LINK_END="\033]8;;\a"
 
 # Brand is clickable → opens the repo (primary discovery hook)
-BRAND="${REPO_LINK_START}${BOLD}${MAGENTA}luigi's meter${RESET}${LINK_END}"
+BRAND="${REPO_LINK_START}${BOLD}${MAGENTA}luigis-meter${RESET}${LINK_END}"
 # Credit is clickable → opens the X profile (personal brand hook)
 CREDIT="${DIM}· ${X_LINK_START}@luigigreco${LINK_END}${RESET}"
 
