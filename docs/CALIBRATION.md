@@ -1,17 +1,52 @@
 # Calibration Guide
 
 luigis-meter estimates Claude Code Max plan quota from local transcripts.
-The default limits are tuned for **Max 20x** but they are community
-estimates, not official Anthropic numbers. Your actual limits may differ.
+**It ships no guessed defaults**: until you set your own ceilings it shows
+`calibrate` instead of a percentage, because Anthropic does not publish exact
+Max-plan token limits and a made-up number would only look authoritative.
 
-This guide shows how to tune `CLAUDE_MAX_5H_TOKENS` and
-`CLAUDE_MAX_WEEKLY_TOKENS` until the meter matches Claude Code's built-in
-`/usage` popup.
+This guide shows how to find your real `CLAUDE_MAX_5H_TOKENS` and
+`CLAUDE_MAX_WEEKLY_TOKENS` values from your own usage.
 
 ## Prerequisites
 
 - luigis-meter installed and working
-- An active Claude Code session with some recent usage (last 1-2 hours)
+- `jq` available, and an active Claude Code session with recent usage
+
+## Method A — Ceiling-capture (recommended)
+
+The most robust calibration reads your real ceiling directly off your own data,
+at the moment it matters most: when you're near the limit.
+
+1. Use Claude Code normally until `/usage` shows the **session at or near 100%
+   used** (the highest you'll see before reset).
+2. At that moment, run the meter in debug mode:
+
+   ```bash
+   CLAUDE_METER_DEBUG=1 bash ~/.claude/scripts/luigis-meter.sh >/dev/null
+   ```
+
+   It prints to stderr, e.g.:
+
+   ```
+   luigis-meter[debug] deduped 5h=918432 week=8730000 (include_sidechains=1)
+   ```
+
+3. That `5h=` number **is** your real 5-hour ceiling (the deduped tokens you
+   consumed to reach ~100%). Set it:
+
+   ```bash
+   export CLAUDE_MAX_5H_TOKENS=918432
+   ```
+
+4. Repeat when `/usage` **weekly** is near 100% to capture `week=` →
+   `CLAUDE_MAX_WEEKLY_TOKENS`. (If you can't wait, a rough weekly placeholder is
+   ~10× the 5h ceiling — but the captured number is the only accurate one.)
+
+Calibrating at the top of the range avoids the divide-by-small-number noise that
+makes the factor method (below) unreliable at low usage.
+
+## Method B — Factor scaling (alternative)
 
 ## Step 1 — Capture the ground truth
 
@@ -32,7 +67,7 @@ Write down:
 In another terminal (or via the statusline), read luigis-meter's output:
 
 ```
-⏱ sess left: B% (...) · week left: C% (...) · estimate
+⏱ sess left: B% (...) · week left: C% (...) · local est. (not /usage)
 ```
 
 Convert to "used":
@@ -74,6 +109,7 @@ new_week_limit = 5_000_000 × (62 / 54) ≈ 5_740_740
 Add to `~/.zshrc` (or `~/.bashrc`):
 
 ```bash
+# Example values from the worked example above — NOT defaults. Use your own.
 export CLAUDE_MAX_5H_TOKENS=500000
 export CLAUDE_MAX_WEEKLY_TOKENS=5740740
 ```
