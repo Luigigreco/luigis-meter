@@ -42,4 +42,5 @@ echo '[ -n "$METER_LINE" ] && echo -e "$METER_LINE"'
 echo "-----------------------------8<-----------------------------"
 echo
 echo "Done. Open a new Claude Code window to see the meter in action."
-echo "To calibrate, see: https://github.com/Luigigreco/luigis-meter#calibration"
+echo "To calibrate, see: https://github.com/Luigigreco/luigis-meter/blob/main/docs/CALIBRATION.md"
+echo "(Until calibrated, the meter shows 'calibrate' instead of a percentage.)"
