@@ -12,10 +12,16 @@
 # Output example:
 #   "lm ⏱ sess left: 85% (2h 13m left) · week left: 39% (reset Fri 18:07) · estimate"
 #
+# Token accounting is BILLING-WEIGHTED, mirroring Anthropic pricing ratios:
+#   weighted = input + output + 1.25*cache_creation + 0.10*cache_read
+# Counting cache reads at full weight saturates the gauge on heavy days
+# (cache reads are routinely 99% of raw volume) while the real /usage
+# popup still shows headroom.
+#
 # Environment variables (override defaults in ~/.zshrc if the numbers drift
-# from Claude Code's /usage popup):
-#   CLAUDE_MAX_5H_TOKENS     default 295000    (tokens per 5h block, Max 20x)
-#   CLAUDE_MAX_WEEKLY_TOKENS default 2960000   (tokens per week,    Max 20x)
+# from Claude Code's /usage popup). Units are WEIGHTED tokens:
+#   CLAUDE_MAX_5H_TOKENS     default 120000000   (weighted tokens per 5h block, Max 20x)
+#   CLAUDE_MAX_WEEKLY_TOKENS default 1200000000  (weighted tokens per week,     Max 20x)
 #
 # Defaults tuned from real Max 20x user data. See docs/CALIBRATION.md
 # for how to retune to your own plan and workload.
@@ -30,8 +36,8 @@
 set -u
 
 # --- Config ---
-MAX_5H_TOKENS="${CLAUDE_MAX_5H_TOKENS:-295000}"
-MAX_WEEKLY_TOKENS="${CLAUDE_MAX_WEEKLY_TOKENS:-2960000}"
+MAX_5H_TOKENS="${CLAUDE_MAX_5H_TOKENS:-120000000}"
+MAX_WEEKLY_TOKENS="${CLAUDE_MAX_WEEKLY_TOKENS:-1200000000}"
 PROJECTS_DIR="$HOME/.claude/projects"
 CACHE_FILE="${TMPDIR:-/tmp}/luigis-meter.cache"
 CACHE_TTL=30
@@ -57,7 +63,6 @@ fi
 
 # --- Time windows (epoch seconds) ---
 NOW=$(date +%s)
-BLOCK_START=$(( NOW - 5 * 3600 ))   # 5h ago
 WEEK_START=$(( NOW - 7 * 86400 ))   # 7d ago
 
 # --- Collect JSONL files modified in the last 7 days ---
@@ -66,40 +71,55 @@ FILES=$(find "$PROJECTS_DIR" -name "*.jsonl" -mtime -7 2>/dev/null)
 if [ -z "$FILES" ]; then
     SUM_5H=0
     SUM_WEEK=0
-    FIRST_5H_TS=$NOW
+    BLOCK_START_TS=0
 else
-    # jq streaming: emit "<epoch>\t<tokens>" for every assistant record
-    # with a usage field. Cache tokens are NOT counted — they distort
-    # percentages because Anthropic discounts cache reads in real billing.
+    # jq streaming: emit "<epoch>\t<weighted_tokens>" for every assistant
+    # record with a usage field. Weighted like real billing so cache reads
+    # (often 99% of raw volume) do not saturate the gauge:
+    #   input + output + 1.25*cache_creation + 0.10*cache_read
     READ_DATA=$(echo "$FILES" | tr '\n' '\0' | xargs -0 cat 2>/dev/null | jq -rc '
-        select(.type == "assistant" and .message.usage != null) |
+        select(.type == "assistant") | select(.message.usage | type == "object") |
         [
             (.timestamp // "" | if . == "" then 0 else (. | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) end),
-            ((.message.usage.input_tokens // 0)
-             + (.message.usage.output_tokens // 0))
+            (((.message.usage.input_tokens // 0)
+              + (.message.usage.output_tokens // 0)
+              + 1.25 * (.message.usage.cache_creation_input_tokens // 0)
+              + 0.10 * (.message.usage.cache_read_input_tokens // 0)) | round)
         ] | @tsv
     ' 2>/dev/null)
 
     SUM_5H=0
     SUM_WEEK=0
-    FIRST_5H_TS=$NOW
+    BLOCK_START_TS=0
     if [ -n "$READ_DATA" ]; then
-        AGG=$(echo "$READ_DATA" | awk -v block="$BLOCK_START" -v week="$WEEK_START" -v now="$NOW" '
-        BEGIN { s5=0; sw=0; first=now }
-        {
-            ts=$1; tok=$2;
-            if (ts >= week) sw += tok;
-            if (ts >= block) {
-                s5 += tok;
-                if (ts < first) first = ts;
+        # Block segmentation, matching Anthropic semantics: a 5h block
+        # starts at the FIRST message after the previous block expired
+        # (floored to the top of the hour), NOT "5h ago". A rolling
+        # lookback pins the countdown at "0h 0m left" under continuous
+        # use — that was the original bug.
+        AGG=$(echo "$READ_DATA" | sort -n | awk -v week="$WEEK_START" '
+        BEGIN { sw=0; bstart=0; bsum=0 }
+        $1 >= week {
+            if (bstart == 0 || $1 >= bstart + 18000) {
+                bstart = $1 - ($1 % 3600);  # floor to the hour
+                bsum = 0;
             }
+            sw += $2;
+            bsum += $2;
         }
-        END { printf "%d %d %d\n", s5, sw, first }
+        END { printf "%.0f %.0f %d\n", bsum, sw, bstart }
         ')
         SUM_5H=$(echo "$AGG" | awk '{print $1}')
         SUM_WEEK=$(echo "$AGG" | awk '{print $2}')
-        FIRST_5H_TS=$(echo "$AGG" | awk '{print $3}')
+        BLOCK_START_TS=$(echo "$AGG" | awk '{print $3}')
     fi
+fi
+
+# If the last block already expired (no messages since), the session
+# gauge starts fresh: its tokens belong to a dead block.
+if [ "$BLOCK_START_TS" -gt 0 ] && [ "$NOW" -ge "$(( BLOCK_START_TS + 5 * 3600 ))" ]; then
+    SUM_5H=0
+    BLOCK_START_TS=0
 fi
 
 # --- Compute remaining percentages ---
@@ -111,10 +131,11 @@ PCT_WEEK=$(( 100 - PCT_WEEK_USED ))
 if [ "$PCT_WEEK" -lt 0 ]; then PCT_WEEK=0; fi
 
 # --- Reset time for 5h block ---
-# The block starts from the FIRST message in the window and closes 5h
-# later regardless of how much was used. This matches Anthropic semantics.
-if [ "$FIRST_5H_TS" -lt "$NOW" ] && [ "$SUM_5H" -gt 0 ]; then
-    RESET_5H_EPOCH=$(( FIRST_5H_TS + 5 * 3600 ))
+# The block closes 5h after its start regardless of how much was used.
+# If the current block already expired (no messages since), there is no
+# active block: show a full fresh window.
+if [ "$BLOCK_START_TS" -gt 0 ] && [ "$NOW" -lt "$(( BLOCK_START_TS + 5 * 3600 ))" ]; then
+    RESET_5H_EPOCH=$(( BLOCK_START_TS + 5 * 3600 ))
     SECS_LEFT=$(( RESET_5H_EPOCH - NOW ))
     if [ "$SECS_LEFT" -lt 0 ]; then
         SECS_LEFT=0
@@ -163,6 +184,7 @@ CYAN="\033[36m"
 MAGENTA="\033[35m"
 WHITE="\033[37m"
 UNDERLINE="\033[4m"
+ITALIC="\033[3m"
 
 color_for_pct() {
     local p=$1

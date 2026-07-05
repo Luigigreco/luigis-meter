@@ -87,12 +87,14 @@ Colors follow "remaining" semantics: green >50%, yellow 20-50%, red <20%.
 
 ## Defaults (Max 20x)
 
-These defaults were calibrated from real Max 20x usage and match
-Claude Code's `/usage` popup within ~2% on the tester's setup:
+Limits are expressed in **billing-weighted tokens**
+(`input + output + 1.25×cache_creation + 0.10×cache_read`), so cache reads
+— routinely 99% of raw transcript volume — don't saturate the gauge.
+Defaults calibrated from real Max 20x usage:
 
 ```bash
-CLAUDE_MAX_5H_TOKENS=192000       # ~192K tokens per 5h block
-CLAUDE_MAX_WEEKLY_TOKENS=3250000  # ~3.25M tokens per week
+CLAUDE_MAX_5H_TOKENS=120000000      # 120M weighted tokens per 5h block
+CLAUDE_MAX_WEEKLY_TOKENS=1200000000 # 1.2B weighted tokens per week
 ```
 
 If the numbers drift for you, see [CALIBRATION.md](docs/CALIBRATION.md)

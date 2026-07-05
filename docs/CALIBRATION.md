@@ -8,6 +8,26 @@ This guide shows how to tune `CLAUDE_MAX_5H_TOKENS` and
 `CLAUDE_MAX_WEEKLY_TOKENS` until the meter matches Claude Code's built-in
 `/usage` popup.
 
+## How counting works
+
+Both limits are expressed in **billing-weighted tokens**, mirroring
+Anthropic pricing ratios:
+
+```
+weighted = input + output + 1.25 × cache_creation + 0.10 × cache_read
+```
+
+Cache reads are routinely 99% of raw transcript volume; counting them at
+full weight saturates the gauge on heavy days while `/usage` still shows
+headroom. Defaults: `CLAUDE_MAX_5H_TOKENS=120000000` (120M weighted per
+5h block), `CLAUDE_MAX_WEEKLY_TOKENS=1200000000` (1.2B weighted per week),
+tuned on Max 20x data.
+
+The 5h block follows Anthropic semantics: it starts at the **first message
+after the previous block expired** (floored to the top of the hour) and
+closes 5h later — not a rolling "last 5 hours" lookback, which would pin
+the countdown at `0h 0m left` under continuous use.
+
 ## Prerequisites
 
 - luigis-meter installed and working
@@ -66,7 +86,7 @@ Session is already aligned (14% ≈ 14%). Weekly is over-counting
 (62% > 54%), so we scale up the weekly limit:
 
 ```
-new_week_limit = 5_000_000 × (62 / 54) ≈ 5_740_740
+new_week_limit = 1_200_000_000 × (62 / 54) ≈ 1_377_777_777
 ```
 
 ## Step 4 — Apply the new limits
@@ -74,8 +94,8 @@ new_week_limit = 5_000_000 × (62 / 54) ≈ 5_740_740
 Add to `~/.zshrc` (or `~/.bashrc`):
 
 ```bash
-export CLAUDE_MAX_5H_TOKENS=500000
-export CLAUDE_MAX_WEEKLY_TOKENS=5740740
+export CLAUDE_MAX_5H_TOKENS=120000000
+export CLAUDE_MAX_WEEKLY_TOKENS=1377777777
 ```
 
 Reload:
