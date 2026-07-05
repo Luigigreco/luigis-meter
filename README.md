@@ -106,10 +106,11 @@ the [calibration issue template](https://github.com/Luigigreco/luigis-meter/issu
 **Q: Why does my `sess left` show high % but `(0h 0m left)` or `(resetting...)`?**
 
 A: Not a bug. Claude Code's 5-hour session block starts from your **first
-message** in the current window and closes 5 hours later regardless of how
-much you used. If you sent one message 4h59m ago and then nothing, you'll
-see high "remaining" but imminent reset. This matches the `/usage` popup
-exactly.
+message after the previous block expired** (floored to the top of the
+hour) and closes 5 hours later regardless of how much you used. If you
+sent one message almost 5h ago and then nothing, you'll see high
+"remaining" but imminent reset. Once the block expires, the gauge starts
+fresh. This matches the `/usage` popup semantics.
 
 **Q: Why are the defaults tuned for Max 20x specifically?**
 
@@ -125,12 +126,14 @@ popup displays "Resets Fri HH:MM" as a human-friendly approximation.
 luigis-meter mirrors that format for familiarity. The number of tokens
 used in the last 7 days is what actually matters, not the exact day.
 
-**Q: Why don't you count `cache_read_input_tokens`?**
+**Q: How are cache tokens counted?**
 
-A: Cache tokens are heavily discounted in real Anthropic billing (Claude
-Code uses prompt caching aggressively). Including them would inflate
-percentages 10-20x and make the meter wildly wrong. Only `input_tokens +
-output_tokens` are counted.
+A: At their real billing weight, not at face value:
+`input + output + 1.25×cache_creation + 0.10×cache_read`. Claude Code
+uses prompt caching aggressively, so cache reads are routinely 99% of
+raw transcript volume — counting them at full weight would saturate the
+gauge to 0% on heavy days, while ignoring them entirely would miss real
+consumption. The 1.25/0.10 ratios mirror Anthropic's pricing.
 
 **Q: Can this push me over the limit faster by running frequently?**
 
