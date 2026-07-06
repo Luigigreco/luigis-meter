@@ -20,11 +20,26 @@
 #
 # Environment variables (override defaults in ~/.zshrc if the numbers drift
 # from Claude Code's /usage popup). Units are WEIGHTED tokens:
-#   CLAUDE_MAX_5H_TOKENS     default 120000000   (weighted tokens per 5h block, Max 20x)
-#   CLAUDE_MAX_WEEKLY_TOKENS default 1200000000  (weighted tokens per week,     Max 20x)
+#   CLAUDE_MAX_5H_TOKENS       default 120000000   (weighted tokens per 5h block, Max 20x)
+#   CLAUDE_MAX_WEEKLY_TOKENS   default 1200000000  (weighted tokens per week,     Max 20x)
+#   CLAUDE_FABLE_WEEKLY_TOKENS default 289000000   (weighted tokens/week for claude-fable-5 only;
+#                                                    calibrated 2026-07-06, ~50% used at 144M observed)
+#
+# Testability / configuration seams:
+#   CLAUDE_PROJECTS_DIR      override the transcripts root (default ~/.claude/projects)
+#   CLAUDE_NOW_EPOCH         override "now" (epoch seconds) for deterministic runs/tests
+#   CLAUDE_WEEKLY_RESET_DOW  weekly reset weekday, 1=Mon..7=Sun (default 7 = Sunday)
+#   CLAUDE_WEEKLY_RESET_HHMM weekly reset time HH:MM local (default "14:59")
 #
 # Defaults tuned from real Max 20x user data. See docs/CALIBRATION.md
 # for how to retune to your own plan and workload.
+#
+# KNOWN LIMITATION: the session (5h) estimate is reconstructed purely from
+# local ~/.claude/projects transcripts. Anthropic meters quota account-wide,
+# including cross-surface usage that writes NO local transcript (cloud-
+# scheduled agents/routines, claude.ai web, mobile, Desktop app). This gauge
+# can therefore diverge from the official /usage popup, which remains ground
+# truth — this tool is a local estimate, not an authoritative source.
 #
 # Cache: $TMPDIR/luigis-meter.cache with 30s TTL.
 # Dependencies: bash, jq, awk, find, date (GNU or BSD — fallbacks included).
@@ -38,7 +53,8 @@ set -u
 # --- Config ---
 MAX_5H_TOKENS="${CLAUDE_MAX_5H_TOKENS:-120000000}"
 MAX_WEEKLY_TOKENS="${CLAUDE_MAX_WEEKLY_TOKENS:-1200000000}"
-PROJECTS_DIR="$HOME/.claude/projects"
+FABLE_WEEKLY_TOKENS="${CLAUDE_FABLE_WEEKLY_TOKENS:-289000000}"
+PROJECTS_DIR="${CLAUDE_PROJECTS_DIR:-$HOME/.claude/projects}"
 CACHE_FILE="${TMPDIR:-/tmp}/luigis-meter.cache"
 CACHE_TTL=30
 
@@ -62,7 +78,10 @@ if [ ! -d "$PROJECTS_DIR" ]; then
 fi
 
 # --- Time windows (epoch seconds) ---
-NOW=$(date +%s)
+# Injectable clock: lets tests pin "now" for deterministic output. All
+# time-of-day / weekday logic (weekly reset included) derives from $NOW,
+# never from independent live `date` calls.
+NOW="${CLAUDE_NOW_EPOCH:-$(date +%s)}"
 WEEK_START=$(( NOW - 7 * 86400 ))   # 7d ago
 
 # --- Collect JSONL files modified in the last 7 days ---
@@ -72,11 +91,14 @@ if [ -z "$FILES" ]; then
     SUM_5H=0
     SUM_WEEK=0
     BLOCK_START_TS=0
+    SUM_FABLE_WEEK=0
 else
-    # jq streaming: emit "<epoch>\t<weighted_tokens>" for every assistant
-    # record with a usage field. Weighted like real billing so cache reads
-    # (often 99% of raw volume) do not saturate the gauge:
+    # jq streaming: emit "<epoch>\t<weighted_tokens>\t<model>" for every
+    # assistant record with a usage field. Weighted like real billing so
+    # cache reads (often 99% of raw volume) do not saturate the gauge:
     #   input + output + 1.25*cache_creation + 0.10*cache_read
+    # The model column feeds the separate Fable gauge (FIX B) without a
+    # second file scan.
     READ_DATA=$(echo "$FILES" | tr '\n' '\0' | xargs -0 cat 2>/dev/null | jq -rc '
         select(.type == "assistant") | select(.message.usage | type == "object") |
         [
@@ -84,34 +106,44 @@ else
             (((.message.usage.input_tokens // 0)
               + (.message.usage.output_tokens // 0)
               + 1.25 * (.message.usage.cache_creation_input_tokens // 0)
-              + 0.10 * (.message.usage.cache_read_input_tokens // 0)) | round)
+              + 0.10 * (.message.usage.cache_read_input_tokens // 0)) | round),
+            (.message.model // "")
         ] | @tsv
     ' 2>/dev/null)
 
     SUM_5H=0
     SUM_WEEK=0
     BLOCK_START_TS=0
+    SUM_FABLE_WEEK=0
     if [ -n "$READ_DATA" ]; then
         # Block segmentation, matching Anthropic semantics: a 5h block
-        # starts at the FIRST message after the previous block expired
-        # (floored to the top of the hour), NOT "5h ago". A rolling
-        # lookback pins the countdown at "0h 0m left" under continuous
-        # use — that was the original bug.
+        # starts at the FIRST message after the previous block expired,
+        # anchored at that message's EXACT epoch (not floored to the top
+        # of the hour). Flooring re-anchored on every 5h rollover, which
+        # could chain-drift the effective block start by >4h and silently
+        # discard early-block usage into an "expired" block — undercounting
+        # the current block's real usage by as much as ~4.9x. A rolling
+        # lookback (using "5h ago" as the anchor) has the opposite failure:
+        # it pins the countdown at "0h 0m left" under continuous use — that
+        # was the ORIGINAL bug this segmentation was built to fix. Anchoring
+        # on the exact epoch of the first message in the block avoids both.
         AGG=$(echo "$READ_DATA" | sort -n | awk -v week="$WEEK_START" '
-        BEGIN { sw=0; bstart=0; bsum=0 }
+        BEGIN { sw=0; bstart=0; bsum=0; swf=0 }
         $1 >= week {
             if (bstart == 0 || $1 >= bstart + 18000) {
-                bstart = $1 - ($1 % 3600);  # floor to the hour
+                bstart = $1;  # anchor = exact epoch, no flooring
                 bsum = 0;
             }
             sw += $2;
             bsum += $2;
+            if ($3 == "claude-fable-5") { swf += $2; }
         }
-        END { printf "%.0f %.0f %d\n", bsum, sw, bstart }
+        END { printf "%.0f %.0f %d %.0f\n", bsum, sw, bstart, swf }
         ')
         SUM_5H=$(echo "$AGG" | awk '{print $1}')
         SUM_WEEK=$(echo "$AGG" | awk '{print $2}')
         BLOCK_START_TS=$(echo "$AGG" | awk '{print $3}')
+        SUM_FABLE_WEEK=$(echo "$AGG" | awk '{print $4}')
     fi
 fi
 
@@ -123,12 +155,19 @@ if [ "$BLOCK_START_TS" -gt 0 ] && [ "$NOW" -ge "$(( BLOCK_START_TS + 5 * 3600 ))
 fi
 
 # --- Compute remaining percentages ---
-PCT_5H_USED=$(awk -v s="$SUM_5H" -v m="$MAX_5H_TOKENS" 'BEGIN { printf "%d", (s*100/m) }')
-PCT_WEEK_USED=$(awk -v s="$SUM_WEEK" -v m="$MAX_WEEKLY_TOKENS" 'BEGIN { printf "%d", (s*100/m) }')
+PCT_5H_USED=$(awk -v s="$SUM_5H" -v m="$MAX_5H_TOKENS" 'BEGIN { printf "%d", (m > 0 ? s*100/m : 100) }')
+PCT_WEEK_USED=$(awk -v s="$SUM_WEEK" -v m="$MAX_WEEKLY_TOKENS" 'BEGIN { printf "%d", (m > 0 ? s*100/m : 100) }')
 PCT_5H=$(( 100 - PCT_5H_USED ))
 if [ "$PCT_5H" -lt 0 ]; then PCT_5H=0; fi
 PCT_WEEK=$(( 100 - PCT_WEEK_USED ))
 if [ "$PCT_WEEK" -lt 0 ]; then PCT_WEEK=0; fi
+
+# Fable-5 gauge: separate weekly cap, same billing-weighted formula,
+# restricted to records where .message.model == "claude-fable-5".
+PCT_FABLE_USED=$(awk -v s="$SUM_FABLE_WEEK" -v m="$FABLE_WEEKLY_TOKENS" 'BEGIN { printf "%d", (m > 0 ? s*100/m : 100) }')
+PCT_FABLE=$(( 100 - PCT_FABLE_USED ))
+if [ "$PCT_FABLE" -lt 0 ]; then PCT_FABLE=0; fi
+if [ "$PCT_FABLE" -gt 100 ]; then PCT_FABLE=100; fi
 
 # --- Reset time for 5h block ---
 # The block closes 5h after its start regardless of how much was used.
@@ -153,25 +192,43 @@ else
     RESET_5H_STR="5h 0m left"
 fi
 
-# --- Reset weekly: next Friday 14:00 local ---
+# --- Reset weekly: configurable weekday + HH:MM, derived from $NOW ---
 # Anthropic uses a rolling 7-day window under the hood, but the /usage popup
-# displays "Resets Fri HH:MM" so we mirror that format for familiarity.
-DOW=$(date +%u)  # 1=Mon .. 7=Sun
-if [ "$DOW" -lt 5 ]; then
-    DAYS_TO_FRI=$(( 5 - DOW ))
-elif [ "$DOW" -eq 5 ]; then
-    CURR_HOUR=$(date +%H)
-    if [ "$CURR_HOUR" -lt 14 ]; then
-        DAYS_TO_FRI=0
-    else
-        DAYS_TO_FRI=7
-    fi
-else
-    DAYS_TO_FRI=$(( 12 - DOW ))  # Sat=6 → 6, Sun=7 → 5
+# displays "Resets <Day> HH:MM" so we mirror that format for familiarity.
+# CLAUDE_WEEKLY_RESET_DOW/HHMM let this be retargeted (e.g. a plan whose
+# quota actually resets on a different day/time than the default).
+#
+# Cross-platform epoch formatting/parsing: BSD `date -r`/`-j -f` (macOS)
+# with GNU `date -d` fallback. Everything below derives from $NOW, never
+# from a fresh independent `date` call, so CLAUDE_NOW_EPOCH fully controls
+# the result.
+fmt_epoch() {
+    # fmt_epoch <epoch> <date-format>
+    date -r "$1" "$2" 2>/dev/null || date -d "@$1" "$2" 2>/dev/null
+}
+parse_datetime() {
+    # parse_datetime "YYYY-MM-DD HH:MM:SS" -> epoch
+    date -j -f "%Y-%m-%d %H:%M:%S" "$1" +%s 2>/dev/null || date -d "$1" +%s 2>/dev/null
+}
+
+WEEKLY_RESET_DOW="${CLAUDE_WEEKLY_RESET_DOW:-7}"      # 1=Mon .. 7=Sun, default Sun
+WEEKLY_RESET_HHMM="${CLAUDE_WEEKLY_RESET_HHMM:-14:59}"
+
+CURR_DOW=$(fmt_epoch "$NOW" "+%u")                    # 1=Mon .. 7=Sun
+TODAY_STR=$(fmt_epoch "$NOW" "+%Y-%m-%d")
+TARGET_TODAY_EPOCH=$(parse_datetime "${TODAY_STR} ${WEEKLY_RESET_HHMM}:00")
+
+DAYS_TO_TARGET=$(( (WEEKLY_RESET_DOW - CURR_DOW + 7) % 7 ))
+if [ "$DAYS_TO_TARGET" -eq 0 ] && [ "$NOW" -ge "$TARGET_TODAY_EPOCH" ]; then
+    DAYS_TO_TARGET=7  # today IS the target weekday but the reset time already passed
 fi
-RESET_WEEK_STR=$(date -v+${DAYS_TO_FRI}d "+Fri %H:%M" 2>/dev/null || \
-                 date -d "+${DAYS_TO_FRI} days" "+Fri %H:%M" 2>/dev/null || \
-                 echo "Fri 14:00")
+RESET_WEEK_EPOCH=$(( TARGET_TODAY_EPOCH + DAYS_TO_TARGET * 86400 ))
+
+RESET_WEEK_LABEL=$(LC_ALL=C fmt_epoch "$RESET_WEEK_EPOCH" "+%a")
+if [ -z "$RESET_WEEK_LABEL" ]; then
+    RESET_WEEK_LABEL="Sun"
+fi
+RESET_WEEK_STR="${RESET_WEEK_LABEL} ${WEEKLY_RESET_HHMM}"
 
 # --- Colors (input is "remaining %") ---
 RESET="\033[0m"
@@ -195,6 +252,7 @@ color_for_pct() {
 }
 C5H=$(color_for_pct "$PCT_5H")
 CWK=$(color_for_pct "$PCT_WEEK")
+CFAB=$(color_for_pct "$PCT_FABLE")
 
 # --- Build output ---
 # Brand prefix: "lm" = luigis-meter (short, low footprint, still visible)
@@ -209,7 +267,7 @@ BRAND="${REPO_LINK_START}${BOLD}${UNDERLINE}${MAGENTA}luigis-meter${RESET}${LINK
 # Credit is clickable → opens the X profile (personal brand hook)
 CREDIT="· ${GREEN}follow for updates: x.com/luigigreco${RESET}"
 
-OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} (${RESET_5H_STR}) · week left: ${CWK}${PCT_WEEK}%${RESET} (reset ${RESET_WEEK_STR}) · estimate ${CREDIT}"
+OUTPUT="${BRAND} ${CYAN}⏱${RESET} sess left: ${C5H}${PCT_5H}%${RESET} (${RESET_5H_STR}) · week left: ${CWK}${PCT_WEEK}%${RESET} (reset ${RESET_WEEK_STR}) · fable: ${CFAB}${PCT_FABLE}%${RESET} · estimate ${CREDIT}"
 
 # Tagline: second row under the metrics, italic dim.
 # Passive marketing on every refresh without cluttering the data line.
